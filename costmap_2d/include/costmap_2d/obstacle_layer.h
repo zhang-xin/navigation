@@ -168,8 +168,12 @@ protected:
 
   int combination_method_;
 
+  int costmap_min_points_;
+
 private:
   void reconfigureCB(costmap_2d::ObstaclePluginConfig &config, uint32_t level);
+
+  std::vector<unsigned char> costmap_marker_;
 };
 
 }  // namespace costmap_2d

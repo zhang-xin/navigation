@@ -247,6 +247,7 @@ void ObstacleLayer::reconfigureCB(costmap_2d::ObstaclePluginConfig &config, uint
   footprint_clearing_enabled_ = config.footprint_clearing_enabled;
   max_obstacle_height_ = config.max_obstacle_height;
   combination_method_ = config.combination_method;
+  costmap_min_points_ = config.costmap_min_points;
 }
 
 void ObstacleLayer::laserScanCallback(const sensor_msgs::LaserScanConstPtr& message,
@@ -364,6 +365,9 @@ void ObstacleLayer::updateBounds(double robot_x, double robot_y, double robot_ya
     raytraceFreespace(clearing_observations[i], min_x, min_y, max_x, max_y);
   }
 
+  costmap_marker_.clear();
+  costmap_marker_.resize(size_x_ * size_y_, 0);
+
   // place the new obstacles into a priority queue... each with a priority of zero to begin with
   for (std::vector<Observation>::const_iterator it = observations.begin(); it != observations.end(); ++it)
   {
@@ -404,8 +408,13 @@ void ObstacleLayer::updateBounds(double robot_x, double robot_y, double robot_ya
       }
 
       unsigned int index = getIndex(mx, my);
-      costmap_[index] = LETHAL_OBSTACLE;
-      touch(px, py, min_x, min_y, max_x, max_y);
+      if (costmap_marker_[index] < 255)
+          costmap_marker_[index]++;
+      if (costmap_marker_[index] > costmap_min_points_)
+      {
+        costmap_[index] = LETHAL_OBSTACLE;
+        touch(px, py, min_x, min_y, max_x, max_y);
+      }
     }
   }
 
