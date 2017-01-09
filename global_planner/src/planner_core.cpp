@@ -142,6 +142,7 @@ void GlobalPlanner::initialize(std::string name, costmap_2d::Costmap2D* costmap,
         private_nh.param("planner_window_x", planner_window_x_, 0.0);
         private_nh.param("planner_window_y", planner_window_y_, 0.0);
         private_nh.param("default_tolerance", default_tolerance_, 0.0);
+        private_nh.param("stop_distance", stop_distance_, 0.0);
         private_nh.param("publish_scale", publish_scale_, 100);
 
         double costmap_pub_freq;
@@ -341,6 +342,14 @@ bool GlobalPlanner::makePlan(const geometry_msgs::PoseStamped& start, const geom
             //make sure the goal we push on has the same timestamp as the rest of the plan
             goal_copy.header.stamp = ros::Time::now();
             plan.push_back(goal_copy);
+            if (stop_distance_ > 0) {
+                for (std::vector<geometry_msgs::PoseStamped>::iterator it = plan.begin(); it != plan.end(); it++) {
+                    if (sq_distance(*it, goal_copy) < (stop_distance_ * stop_distance_)) {
+                        plan.erase(++it, plan.end());
+                        break;
+                    }
+                }
+            }
         } else {
             ROS_ERROR("Failed to get a plan from potential when a legal potential was found. This shouldn't happen.");
         }

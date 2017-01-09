@@ -180,7 +180,13 @@ class GlobalPlanner : public nav_core::BaseGlobalPlanner {
         void clearRobotCell(const tf::Stamped<tf::Pose>& global_pose, unsigned int mx, unsigned int my);
         void publishPotential(float* potential);
 
-        double planner_window_x_, planner_window_y_, default_tolerance_;
+        inline double sq_distance(const geometry_msgs::PoseStamped& p1, const geometry_msgs::PoseStamped& p2){
+            double dx = p1.pose.position.x - p2.pose.position.x;
+            double dy = p1.pose.position.y - p2.pose.position.y;
+            return dx * dx + dy * dy;
+        }
+
+        double planner_window_x_, planner_window_y_, default_tolerance_, stop_distance_;
         std::string tf_prefix_;
         boost::mutex mutex_;
         ros::ServiceServer make_plan_srv_;
