@@ -303,11 +303,42 @@ bool GlobalPlanner::makePlan(const geometry_msgs::PoseStamped& start, const geom
     if(publish_potential_)
         publishPotential(potential_array_);
 
+    // if the plan to goal is not found try the area around within tolerance distance
+    double best_x = goal_x, best_y = goal_y;
+    bool tolerance_reset = false;
+    if (!found_legal) {
+        double resolution = costmap_->getResolution();
+        double x, y;
+        double best_sdist = std::numeric_limits<double>::max();
+        double map_tolerance = tolerance / resolution;
+        y = goal_y - map_tolerance;
+        while (y <= goal_y + map_tolerance) {
+            x = goal_x - map_tolerance;
+            while (x <= goal_x + map_tolerance) {
+                double potential = potential_array_[(int)x + nx * (int)y];
+                double sdist = (x - goal_x) * (x - goal_x) + (y - goal_y) * (y - goal_y);
+                if (potential < POT_HIGH && sdist < best_sdist) {
+                    best_sdist = sdist;
+                    best_x = x;
+                    best_y = y;
+                    found_legal = true;
+                    tolerance_reset = true;
+                }
+                x += 1;
+            }
+            y += 1;
+        }
+    }
+
     if (found_legal) {
+        // reset the goal if goal is changed to tolerance area, if not goal is still same as before
+        geometry_msgs::PoseStamped goal_copy = goal;
+        if (tolerance_reset)
+            mapToWorld(best_x, best_y, goal_copy.pose.position.x, goal_copy.pose.position.y);
+
         //extract the plan
-        if (getPlanFromPotential(start_x, start_y, goal_x, goal_y, goal, plan)) {
+        if (getPlanFromPotential(start_x, start_y, best_x, best_y, goal_copy, plan)) {
             //make sure the goal we push on has the same timestamp as the rest of the plan
-            geometry_msgs::PoseStamped goal_copy = goal;
             goal_copy.header.stamp = ros::Time::now();
             plan.push_back(goal_copy);
         } else {
