@@ -143,6 +143,7 @@ void GlobalPlanner::initialize(std::string name, costmap_2d::Costmap2D* costmap,
         private_nh.param("planner_window_y", planner_window_y_, 0.0);
         private_nh.param("default_tolerance", default_tolerance_, 0.0);
         private_nh.param("stop_distance", stop_distance_, 0.0);
+        private_nh.param("goal_clear_distance", goal_clear_distance_, 0.0);
         private_nh.param("publish_scale", publish_scale_, 100);
 
         double costmap_pub_freq;
@@ -296,6 +297,19 @@ bool GlobalPlanner::makePlan(const geometry_msgs::PoseStamped& start, const geom
 
     outlineMap(costmap_->getCharMap(), nx, ny, costmap_2d::LETHAL_OBSTACLE);
 
+    if (goal_clear_distance_ > 0) {
+        double resolution = costmap_->getResolution();
+        double map_clear_distance = goal_clear_distance_ / resolution;
+        for (double y = goal_y - map_clear_distance; y <= goal_y + map_clear_distance; y += 1) {
+            for (double x = goal_x - map_clear_distance; x <= goal_x + map_clear_distance; x += 1) {
+                double sdist = (x - goal_x) * (x - goal_x) + (y - goal_y) * (y - goal_y);
+                if (sdist < (map_clear_distance * map_clear_distance)) {
+                    costmap_->setCost(x, y, costmap_2d::FREE_SPACE);
+                }
+            }
+        }
+    }
+
     bool found_legal = planner_->calculatePotentials(costmap_->getCharMap(), start_x, start_y, goal_x, goal_y,
                                                     nx * ny * 2, potential_array_);
 
@@ -309,13 +323,10 @@ bool GlobalPlanner::makePlan(const geometry_msgs::PoseStamped& start, const geom
     bool tolerance_reset = false;
     if (!found_legal) {
         double resolution = costmap_->getResolution();
-        double x, y;
         double best_sdist = std::numeric_limits<double>::max();
         double map_tolerance = tolerance / resolution;
-        y = goal_y - map_tolerance;
-        while (y <= goal_y + map_tolerance) {
-            x = goal_x - map_tolerance;
-            while (x <= goal_x + map_tolerance) {
+        for (double y = goal_y - map_tolerance; y <= goal_y + map_tolerance; y += 1) {
+            for (double x = goal_x - map_tolerance; x <= goal_x + map_tolerance; x += 1) {
                 double potential = potential_array_[(int)x + nx * (int)y];
                 double sdist = (x - goal_x) * (x - goal_x) + (y - goal_y) * (y - goal_y);
                 if (potential < POT_HIGH && sdist < best_sdist) {
@@ -325,9 +336,7 @@ bool GlobalPlanner::makePlan(const geometry_msgs::PoseStamped& start, const geom
                     found_legal = true;
                     tolerance_reset = true;
                 }
-                x += 1;
             }
-            y += 1;
         }
     }
 

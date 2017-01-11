@@ -186,7 +186,7 @@ class GlobalPlanner : public nav_core::BaseGlobalPlanner {
             return dx * dx + dy * dy;
         }
 
-        double planner_window_x_, planner_window_y_, default_tolerance_, stop_distance_;
+        double planner_window_x_, planner_window_y_, default_tolerance_, stop_distance_, goal_clear_distance_;
         std::string tf_prefix_;
         boost::mutex mutex_;
         ros::ServiceServer make_plan_srv_;
