@@ -354,6 +354,9 @@ bool GlobalPlanner::makePlan(const geometry_msgs::PoseStamped& start, const geom
             if (stop_distance_ > 0) {
                 for (std::vector<geometry_msgs::PoseStamped>::iterator it = plan.begin(); it != plan.end(); it++) {
                     if (sq_distance(*it, goal_copy) < (stop_distance_ * stop_distance_)) {
+                        double angle = std::atan2(goal_copy.pose.position.y - (*it).pose.position.y,
+                                                  goal_copy.pose.position.x - (*it).pose.position.x);
+                        (*it).pose.orientation = tf::createQuaternionMsgFromYaw(angle);
                         plan.erase(++it, plan.end());
                         break;
                     }
