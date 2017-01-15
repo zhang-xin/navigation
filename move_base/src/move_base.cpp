@@ -75,6 +75,7 @@ namespace move_base {
 
     private_nh.param("oscillation_timeout", oscillation_timeout_, 0.0);
     private_nh.param("oscillation_distance", oscillation_distance_, 0.5);
+    private_nh.param("plan_and_control_state_enabled", plan_and_control_state_enabled_, false);
 
     //set up plan triple buffer
     planner_plan_ = new std::vector<geometry_msgs::PoseStamped>();
@@ -211,6 +212,7 @@ namespace move_base {
 
     oscillation_timeout_ = config.oscillation_timeout;
     oscillation_distance_ = config.oscillation_distance;
+    plan_and_control_state_enabled_ = config.plan_and_control_state_enabled;
     if(config.base_global_planner != last_config_.base_global_planner) {
       boost::shared_ptr<nav_core::BaseGlobalPlanner> old_planner = planner_;
       //initialize the global planner
@@ -674,7 +676,14 @@ namespace move_base {
 
           //we'll make sure that we reset our state for the next execution cycle
           recovery_index_ = 0;
-          state_ = PLANNING;
+          /*
+           * planThread will set state_ to CONTROLLING if valid plan is found, in the case PLANNING_CONTROLLING
+           * state is used keep state_ to CONTROLLING here.
+           */
+          if (plan_and_control_state_enabled_ && state_ == CONTROLLING)
+            state_ = CONTROLLING;
+          else
+            state_ = PLANNING;
 
           //we have a new goal so make sure the planner is awake
           lock.lock();
