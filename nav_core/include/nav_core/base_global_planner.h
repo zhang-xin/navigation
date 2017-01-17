@@ -85,6 +85,8 @@ namespace nav_core {
        */
       virtual ~BaseGlobalPlanner(){}
 
+      virtual bool backward_mode() { return false; }
+
     protected:
       BaseGlobalPlanner(){}
   };

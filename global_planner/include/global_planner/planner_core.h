@@ -164,6 +164,8 @@ class GlobalPlanner : public nav_core::BaseGlobalPlanner {
 
         bool makePlanService(nav_msgs::GetPlan::Request& req, nav_msgs::GetPlan::Response& resp);
 
+        bool backward_mode() { return backward_; }
+
     protected:
 
         /**
@@ -187,6 +189,7 @@ class GlobalPlanner : public nav_core::BaseGlobalPlanner {
         }
 
         double planner_window_x_, planner_window_y_, default_tolerance_, stop_distance_, goal_clear_distance_;
+        bool keep_distance_, backward_;
         std::string tf_prefix_;
         boost::mutex mutex_;
         ros::ServiceServer make_plan_srv_;

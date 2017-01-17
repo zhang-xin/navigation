@@ -143,6 +143,7 @@ void GlobalPlanner::initialize(std::string name, costmap_2d::Costmap2D* costmap,
         private_nh.param("planner_window_y", planner_window_y_, 0.0);
         private_nh.param("default_tolerance", default_tolerance_, 0.0);
         private_nh.param("stop_distance", stop_distance_, 0.0);
+        private_nh.param("keep_distance", keep_distance_, false);
         private_nh.param("goal_clear_distance", goal_clear_distance_, 0.0);
         private_nh.param("publish_scale", publish_scale_, 100);
 
@@ -159,6 +160,8 @@ void GlobalPlanner::initialize(std::string name, costmap_2d::Costmap2D* costmap,
         dynamic_reconfigure::Server<global_planner::GlobalPlannerConfig>::CallbackType cb = boost::bind(
                 &GlobalPlanner::reconfigureCB, this, _1, _2);
         dsrv_->setCallback(cb);
+
+        backward_ = false;
 
         initialized_ = true;
     } else
@@ -267,8 +270,23 @@ bool GlobalPlanner::makePlan(const geometry_msgs::PoseStamped& start, const geom
         worldToMap(wx, wy, start_x, start_y);
     }
 
-    wx = goal.pose.position.x;
-    wy = goal.pose.position.y;
+    geometry_msgs::PoseStamped goal_copy = goal;
+
+    backward_ = false;
+    // if start is already in stop_distance we change the goal to a point behind start point
+    if (keep_distance_ && stop_distance_ > 0 && sq_distance(start, goal) < (stop_distance_ * stop_distance_)) {
+        double x = 0, y = 0;
+        double theta = std::atan2(start.pose.position.y - goal.pose.position.y, start.pose.position.x - goal.pose.position.x);
+        y = stop_distance_ * std::sin(theta) + goal.pose.position.y;
+        x = stop_distance_ * std::cos(theta) + goal.pose.position.x;
+        goal_copy.pose.orientation = tf::createQuaternionMsgFromYaw(theta);
+        goal_copy.pose.position.x = x;
+        goal_copy.pose.position.y = y;
+        backward_ = true;
+    }
+
+    wx = goal_copy.pose.position.x;
+    wy = goal_copy.pose.position.y;
 
     if (!costmap_->worldToMap(wx, wy, goal_x_i, goal_y_i)) {
         ROS_WARN_THROTTLE(1.0,
@@ -297,7 +315,7 @@ bool GlobalPlanner::makePlan(const geometry_msgs::PoseStamped& start, const geom
 
     outlineMap(costmap_->getCharMap(), nx, ny, costmap_2d::LETHAL_OBSTACLE);
 
-    if (goal_clear_distance_ > 0) {
+    if (goal_clear_distance_ > 0 && !backward_) {
         double resolution = costmap_->getResolution();
         double map_clear_distance = goal_clear_distance_ / resolution;
         for (double y = goal_y - map_clear_distance; y <= goal_y + map_clear_distance; y += 1) {
@@ -342,7 +360,6 @@ bool GlobalPlanner::makePlan(const geometry_msgs::PoseStamped& start, const geom
 
     if (found_legal) {
         // reset the goal if goal is changed to tolerance area, if not goal is still same as before
-        geometry_msgs::PoseStamped goal_copy = goal;
         if (tolerance_reset)
             mapToWorld(best_x, best_y, goal_copy.pose.position.x, goal_copy.pose.position.y);
 
@@ -351,7 +368,7 @@ bool GlobalPlanner::makePlan(const geometry_msgs::PoseStamped& start, const geom
             //make sure the goal we push on has the same timestamp as the rest of the plan
             goal_copy.header.stamp = ros::Time::now();
             plan.push_back(goal_copy);
-            if (stop_distance_ > 0) {
+            if (stop_distance_ > 0 && !backward_) {
                 for (std::vector<geometry_msgs::PoseStamped>::iterator it = plan.begin(); it != plan.end(); it++) {
                     if (sq_distance(*it, goal_copy) < (stop_distance_ * stop_distance_)) {
                         double angle = std::atan2(goal_copy.pose.position.y - (*it).pose.position.y,
