@@ -360,8 +360,11 @@ bool GlobalPlanner::makePlan(const geometry_msgs::PoseStamped& start, const geom
 
     if (found_legal) {
         // reset the goal if goal is changed to tolerance area, if not goal is still same as before
-        if (tolerance_reset)
+        if (tolerance_reset) {
+            double angle = std::atan2(goal_copy.pose.position.y - best_y, goal_copy.pose.position.x - best_x);
+            goal_copy.pose.orientation = tf::createQuaternionMsgFromYaw(angle);
             mapToWorld(best_x, best_y, goal_copy.pose.position.x, goal_copy.pose.position.y);
+        }
 
         //extract the plan
         if (getPlanFromPotential(start_x, start_y, best_x, best_y, goal_copy, plan)) {
