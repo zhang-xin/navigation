@@ -1,0 +1,7 @@
+<library path="lib/libsimple_local_planner">
+  <class name="simple_local_planner/SimplePlannerROS" type="simple_local_planner::SimplePlannerROS" base_class_type="nav_core::BaseLocalPlanner">
+    <description>
+      A implementation of a local planner using simple approach based on configuration parameters.
+    </description>
+  </class>
+</library>
