@@ -82,7 +82,7 @@ namespace simple_local_planner {
       /**
        * @brief Reconfigures the trajectory planner
        */
-      void reconfigure(SimplePlannerConfig &cfg);
+      void reconfigure(SimplePlannerConfig &cfg, const std::vector<geometry_msgs::Point> &footprint_spec);
 
       /**
        * @brief  Check if a trajectory is legal for a position/velocity pair
@@ -106,8 +106,7 @@ namespace simple_local_planner {
       base_local_planner::Trajectory findBestPath(
           tf::Stamped<tf::Pose> global_pose,
           tf::Stamped<tf::Pose> global_vel,
-          tf::Stamped<tf::Pose>& drive_velocities,
-          std::vector<geometry_msgs::Point> footprint_spec);
+          tf::Stamped<tf::Pose>& drive_velocities);
 
       /**
        * @brief  Take in a new global plan for the local planner to follow, and adjust local costmaps
