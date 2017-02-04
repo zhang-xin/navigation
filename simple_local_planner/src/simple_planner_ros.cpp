@@ -84,10 +84,12 @@ namespace simple_local_planner {
 
       // update simple specific configuration
       dp_->reconfigure(config, costmap_ros_->getRobotFootprint());
+
+      backward_allowed_ = config.backward_allowed;
   }
 
   SimplePlannerROS::SimplePlannerROS() : initialized_(false),
-      odom_helper_("odom"), setup_(false) {
+      odom_helper_("odom"), setup_(false), backward_allowed_(false), new_plan_(false) {
 
   }
 
@@ -135,6 +137,8 @@ namespace simple_local_planner {
     }
     //when we get a new plan, we also want to clear any latch we may have on goal tolerances
     latchedStopRotateController_.resetLatching();
+
+    new_plan_ = true;
 
     ROS_INFO("Got new plan");
     return dp_->setPlan(orig_global_plan);
@@ -271,13 +275,14 @@ namespace simple_local_planner {
     // update plan in simple_planner even if we just stop and rotate, to allow checkTrajectory
     dp_->updatePlanAndLocalCosts(current_pose_, transformed_plan);
 
+    base_local_planner::LocalPlannerLimits limits = planner_util_.getCurrentLimits();
+
     if (latchedStopRotateController_.isPositionReached(&planner_util_, current_pose_)) {
       //publish an empty plan because we've reached our goal position
       std::vector<geometry_msgs::PoseStamped> local_plan;
       std::vector<geometry_msgs::PoseStamped> transformed_plan;
       publishGlobalPlan(transformed_plan);
       publishLocalPlan(local_plan);
-      base_local_planner::LocalPlannerLimits limits = planner_util_.getCurrentLimits();
       return latchedStopRotateController_.computeVelocityCommandsStopRotate(
           cmd_vel,
           limits.getAccLimits(),
@@ -287,6 +292,25 @@ namespace simple_local_planner {
           current_pose_,
           boost::bind(&SimplePlanner::checkTrajectory, dp_, _1, _2, _3));
     } else {
+      // if backward not allowed, turn back first if the path is going backward
+      if (new_plan_ && !backward_allowed_) {
+        if (transformed_plan.size() > 2) {
+          double angle = std::atan2(transformed_plan[1].pose.position.y - transformed_plan[0].pose.position.y,
+                                    transformed_plan[1].pose.position.x - transformed_plan[0].pose.position.x);
+          angle = base_local_planner::getGoalOrientationAngleDifference(current_pose_, angle);
+          if (std::fabs(angle) <= 3.14159 / 4) {
+            new_plan_ = false;
+          } else {
+            cmd_vel.linear.x = 0;
+            cmd_vel.linear.y = 0;
+            double v_theta = std::min(limits.max_rot_vel, std::max(limits.min_rot_vel, std::fabs(angle)));
+            if (angle < 0)
+              v_theta = -v_theta;
+            cmd_vel.angular.z = v_theta;
+            return true;
+          }
+        }
+      }
       bool isOk = simpleComputeVelocityCommands(current_pose_, cmd_vel);
       if (isOk) {
         publishGlobalPlan(transformed_plan);
