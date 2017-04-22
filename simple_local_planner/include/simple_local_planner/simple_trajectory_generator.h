@@ -111,7 +111,7 @@ public:
   void setParameters(double sim_time,
       double sim_granularity,
       double angular_sim_granularity,
-      double sim_period = 0.0);
+      bool backward_allowed);
 
   /**
    * Whether this generator can create more trajectories
@@ -148,7 +148,8 @@ protected:
   bool discretize_by_time_;
 
   double sim_time_, sim_granularity_, angular_sim_granularity_;
-  double sim_period_;
+
+  bool backward_allowed_;
 };
 
 } /* namespace simple_local_planner */

@@ -56,8 +56,8 @@
 #include <simple_local_planner/simple_trajectory_generator.h>
 
 #include <base_local_planner/oscillation_cost_function.h>
-#include <base_local_planner/map_grid_cost_function.h>
 #include <base_local_planner/obstacle_cost_function.h>
+#include <simple_local_planner/map_grid_cost_function.h>
 #include <base_local_planner/simple_scored_sampling_planner.h>
 
 #include <nav_msgs/Path.h>
@@ -116,12 +116,6 @@ namespace simple_local_planner {
           const std::vector<geometry_msgs::PoseStamped>& new_plan);
 
       /**
-       * @brief Get the period at which the local planner is expected to run
-       * @return The simulation period
-       */
-      double getSimPeriod() { return sim_period_; }
-
-      /**
        * @brief Compute the components and total cost for a map grid cell
        * @param cx The x coordinate of the cell in the map grid
        * @param cy The y coordinate of the cell in the map grid
@@ -146,7 +140,6 @@ namespace simple_local_planner {
       double pdist_scale_, gdist_scale_, occdist_scale_;
       Eigen::Vector3f vsamples_;
 
-      double sim_period_;///< @brief The number of seconds to use to compute max/min vels for dwa
       base_local_planner::Trajectory result_traj_;
 
       double forward_point_distance_;
@@ -167,10 +160,10 @@ namespace simple_local_planner {
       simple_local_planner::SimpleTrajectoryGenerator generator_;
       base_local_planner::OscillationCostFunction oscillation_costs_;
       base_local_planner::ObstacleCostFunction obstacle_costs_;
-      base_local_planner::MapGridCostFunction path_costs_;
-      base_local_planner::MapGridCostFunction goal_costs_;
-      base_local_planner::MapGridCostFunction goal_front_costs_;
-      base_local_planner::MapGridCostFunction alignment_costs_;
+      simple_local_planner::MapGridCostFunction path_costs_;
+      simple_local_planner::MapGridCostFunction goal_costs_;
+      simple_local_planner::MapGridCostFunction goal_front_costs_;
+      simple_local_planner::MapGridCostFunction alignment_costs_;
 
       base_local_planner::SimpleScoredSamplingPlanner scored_sampling_planner_;
   };

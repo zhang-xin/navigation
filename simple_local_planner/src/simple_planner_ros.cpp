@@ -281,7 +281,7 @@ namespace simple_local_planner {
       return latchedStopRotateController_.computeVelocityCommandsStopRotate(
           cmd_vel,
           limits.getAccLimits(),
-          dp_->getSimPeriod(),
+          0.05,
           &planner_util_,
           odom_helper_,
           current_pose_,

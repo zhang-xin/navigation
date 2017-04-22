@@ -58,7 +58,7 @@ namespace simple_local_planner {
         config.sim_time,
         config.sim_granularity,
         config.angular_sim_granularity,
-        sim_period_);
+        config.backward_allowed);
 
     double resolution = planner_util_->getCostmap()->getResolution();
     pdist_scale_ = config.path_distance_bias;
@@ -127,24 +127,6 @@ namespace simple_local_planner {
 
     goal_front_costs_.setStopOnFailure( false );
     alignment_costs_.setStopOnFailure( false );
-
-    //Assuming this planner is being run within the navigation stack, we can
-    //just do an upward search for the frequency at which its being run. This
-    //also allows the frequency to be overwritten locally.
-    std::string controller_frequency_param_name;
-    if(!private_nh.searchParam("controller_frequency", controller_frequency_param_name)) {
-      sim_period_ = 0.05;
-    } else {
-      double controller_frequency = 0;
-      private_nh.param(controller_frequency_param_name, controller_frequency, 20.0);
-      if(controller_frequency > 0) {
-        sim_period_ = 1.0 / controller_frequency;
-      } else {
-        ROS_WARN("A controller_frequency less than 0 has been set. Ignoring the parameter, assuming a rate of 20Hz");
-        sim_period_ = 0.05;
-      }
-    }
-    ROS_INFO("Sim period is set to %.2f", sim_period_);
 
     oscillation_costs_.resetOscillationFlags();
 
